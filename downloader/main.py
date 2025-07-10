@@ -1,6 +1,19 @@
-import yt_dlp, sys
+import yt_dlp, os, psycopg2, base64
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_HOST, DB_USER, DB_PASS, DB_NAME = (
+    os.getenv("DB_HOST"),
+    os.getenv("DB_USER"),
+    os.getenv("DB_PASS"),
+    os.getenv("DB_NAME"),
+)
+
+db_connection = psycopg2.connect(
+    host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME
+)
 
 
 # Create all necessary directories
@@ -94,14 +107,50 @@ def extract_video_info(url: str) -> dict:
 def main():
     create_directories()
     URL = "https://www.youtube.com/watch?v=kfZOrjVXSms"
-    download_audio(URL)
     video_info = extract_video_info(URL)
-    if video_info:
-        print("Video information extracted successfully:")
-        for key, value in video_info.items():
-            print(f"  {key}: {value}")
-    else:
-        print("Failed to extract video information.")
+    # Check if ID is already in the database
+    with db_connection.cursor() as cursor:
+        cursor.execute("SELECT 1 FROM videos WHERE yt_id = %s", (video_info["id"],))
+        if cursor.fetchone():
+            print(f"Video is already in the database.")
+            return
+        else:
+            # Insert video info into the database
+            # videos {
+            # 	id integer pk increments unique
+            # 	yt_id varchar(11) unique
+            # 	title text
+            # 	upload_date datetime
+            # 	channel_name text
+            # 	duration integer
+            # 	description text null
+            # 	thumbnail text
+            #   status INTEGER NOT NULL DEFAULT 0
+            #   processed_date timestamp
+            # }
+            cursor.execute(
+                """
+                INSERT INTO videos (yt_id, title, upload_date, channel_name, duration, description, thumbnail, processed_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                """,
+                (
+                    video_info["id"],
+                    video_info["title"],
+                    video_info["upload_date"],
+                    video_info["channel"],
+                    video_info["duration"],
+                    base64.b64encode(video_info["description"].encode()).decode(),
+                    video_info["thumbnail"],
+                ),
+            )
+            db_connection.commit()
+    download_audio(URL)
+    # Update the status of the video to 1 (downloaded)
+    with db_connection.cursor() as cursor:
+        cursor.execute(
+            "UPDATE videos SET status = 1 WHERE yt_id = %s", (video_info["id"],)
+        )
+        db_connection.commit()
 
 
 if __name__ == "__main__":
