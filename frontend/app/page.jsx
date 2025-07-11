@@ -35,6 +35,11 @@ export default function Home() {
 						</Link>
 					)}
 				</Button>
+				<p className="text-sm text-muted-foreground text-center">
+					We recommend not using common words, such as "the", "is",
+					and "in", as well as avoiding single letters, as they might
+					return irrelevant results.
+				</p>
 			</div>
 		</>
 	);
