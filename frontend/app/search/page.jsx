@@ -52,20 +52,54 @@ function formatTimeReadable(seconds) {
 async function fetchSearchResults(query) {
 	const client = await pool.connect();
 	try {
-		const res = await client.query(
-			"SELECT id, video_id, text, start_time, end_time FROM segments WHERE text ILIKE $1",
-			[`%${query}%`]
-		);
-		if (res.rows.length === 0) {
-			return [];
+		// Split the query into individual words
+		const queryWords = query
+			.trim()
+			.split(/\s+/)
+			.filter((word) => word.length > 0);
+
+		// If there are multiple words, search for segments that contain any of the words
+		if (queryWords.length > 1) {
+			// Create a condition for each word with ILIKE
+			const conditions = queryWords.map(
+				(_, index) => `text ILIKE $${index + 1}`
+			);
+			const params = queryWords.map((word) => `%${word}%`);
+
+			const res = await client.query(
+				`SELECT id, video_id, text, start_time, end_time FROM segments WHERE ${conditions.join(
+					" OR "
+				)}`,
+				params
+			);
+
+			if (res.rows.length === 0) {
+				return [];
+			}
+			return res.rows.map((row) => ({
+				id: row.id,
+				video_id: row.video_id,
+				text: row.text,
+				start_time: row.start_time,
+				end_time: row.end_time,
+			}));
+		} else {
+			// Original query for a single word
+			const res = await client.query(
+				"SELECT id, video_id, text, start_time, end_time FROM segments WHERE text ILIKE $1",
+				[`%${query}%`]
+			);
+			if (res.rows.length === 0) {
+				return [];
+			}
+			return res.rows.map((row) => ({
+				id: row.id,
+				video_id: row.video_id,
+				text: row.text,
+				start_time: row.start_time,
+				end_time: row.end_time,
+			}));
 		}
-		return res.rows.map((row) => ({
-			id: row.id,
-			video_id: row.video_id,
-			text: row.text,
-			start_time: row.start_time,
-			end_time: row.end_time,
-		}));
 	} catch (error) {
 		console.error("Error fetching search results:", error);
 		throw error;
@@ -75,14 +109,37 @@ async function fetchSearchResults(query) {
 }
 
 function formatResult(text, queries) {
-	// queries is an array of strings, bold all occurances of each query in the text
+	// queries is an array of strings, bold all occurrences of each query in the text
 	let formattedText = text;
+
+	// For each query, split it into words if it contains spaces
 	queries.forEach((query) => {
-		const regex = new RegExp(`(${query})`, "gi");
-		formattedText = formattedText.replace(
-			regex,
-			`<strong class="text-primary">$1</strong>`
-		);
+		const queryWords = query
+			.trim()
+			.split(/\s+/)
+			.filter((word) => word.length > 0);
+
+		// If query has multiple words, bold each word separately
+		if (queryWords.length > 1) {
+			queryWords.forEach((word) => {
+				// Escape special regex characters in the word
+				const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+				const regex = new RegExp(`(${escapedWord})`, "gi");
+				formattedText = formattedText.replace(
+					regex,
+					`<strong class="text-primary">$1</strong>`
+				);
+			});
+		} else {
+			// Single word query - original behavior
+			// Escape special regex characters in the query
+			const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			const regex = new RegExp(`(${escapedQuery})`, "gi");
+			formattedText = formattedText.replace(
+				regex,
+				`<strong class="text-primary">$1</strong>`
+			);
+		}
 	});
 	return formattedText;
 }
@@ -133,18 +190,39 @@ export default async function SearchPage({ searchParams }) {
 			</div>
 		);
 	}
+
+	// Split the query into words for better formatting in results
+	const queryWords = query
+		.trim()
+		.split(/\s+/)
+		.filter((word) => word.length > 0);
+
 	const results = await fetchSearchResults(query);
-	const videos = findVideoIds({ results });
+
+	// Remove duplicate transcript segments (same text in the same video)
+	const uniqueResults = [];
+	const seenSegments = new Map(); // Map to track unique segments by video_id + text
+
+	results.forEach((result) => {
+		const key = `${result.video_id}_${result.text}`;
+		if (!seenSegments.has(key)) {
+			seenSegments.set(key, true);
+			uniqueResults.push(result);
+		}
+	});
+
+	const videos = findVideoIds({ results: uniqueResults });
 	const videoDetails = await Promise.all(
 		videos.map((videoId) => getVideoDetails(videoId))
 	);
-	console.log(videoDetails);
+
 	// Get a count of how many results each video has
 	const videoResultCount = {};
-	results.forEach((result) => {
+	uniqueResults.forEach((result) => {
 		videoResultCount[result.video_id] =
 			(videoResultCount[result.video_id] || 0) + 1;
 	});
+
 	// Order videoDetails by the number of results they have
 	videoDetails.sort((a, b) => {
 		return (
@@ -161,7 +239,7 @@ export default async function SearchPage({ searchParams }) {
 			</div>
 		);
 	}
-	if (!results || results.length === 0) {
+	if (!uniqueResults || uniqueResults.length === 0) {
 		return (
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
 				<h1 className="text-center text-4xl">Search Results</h1>
@@ -182,16 +260,28 @@ export default async function SearchPage({ searchParams }) {
 				{videoDetails.map((video) => (
 					<Dialog key={video.yt_id}>
 						<DialogTrigger asChild>
-							<div className="w-full rounded-lg flex flex-row items-start gap-4 bg-muted cursor-pointer">
-								<div className="my-2 ml-2">
+							<div className="w-full rounded-lg flex flex-row items-start gap-4 bg-muted cursor-pointer my-2">
+								<div
+									className="my-2 ml-2 w-40 aspect-video overflow-hidden relative flex-shrink-0"
+									style={{ width: "160px", height: "90px" }} // 16:9 ratio, fixed size
+								>
 									<img
 										src={video.thumbnail}
 										alt={video.title}
-										className="w-auto max-h-24 rounded-sm"
+										className="absolute inset-0 w-full h-full object-cover rounded-sm"
 									/>
 								</div>
 								<div className="flex flex-col justify-center mt-2">
-									<h2 className="text-xl font-semibold">
+									<h2
+										className="text-xl font-semibold truncate max-w-xs"
+										style={{
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											whiteSpace: "nowrap",
+											maxWidth: "220px",
+										}}
+										title={video.title}
+									>
 										{video.title}
 									</h2>
 									<p className="text-sm text-muted-foreground">
@@ -210,11 +300,22 @@ export default async function SearchPage({ searchParams }) {
 						<DialogContent>
 							<DialogHeader>
 								<DialogTitle>
-									Lines mentioning: <strong>{query}</strong>
+									{video.title} - {video.channel}
 								</DialogTitle>
 								<DialogDescription asChild>
 									<div className="max-h-[30vh] overflow-y-auto">
-										{results.map((result) => (
+										{/* Show how many results found */}
+										<p className="text-sm text-muted-foreground mb-2">
+											{
+												uniqueResults.filter(
+													(result) =>
+														result.video_id ===
+														video.yt_id
+												).length
+											}{" "}
+											results found
+										</p>
+										{uniqueResults.map((result) => (
 											<div key={result.id}>
 												{result.video_id ===
 													video.yt_id && (
@@ -231,7 +332,12 @@ export default async function SearchPage({ searchParams }) {
 																dangerouslySetInnerHTML={{
 																	__html: formatResult(
 																		result.text,
-																		[query]
+																		queryWords.length >
+																			1
+																			? queryWords
+																			: [
+																					query,
+																			  ]
 																	),
 																}}
 															></p>

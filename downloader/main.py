@@ -14,6 +14,7 @@ DB_HOST, DB_USER, DB_PASS, DB_NAME = (
 db_connection = psycopg2.connect(
     host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME
 )
+db_connection.set_client_encoding("UTF8")
 
 
 # Create all necessary directories
@@ -24,9 +25,7 @@ def create_directories() -> None:
     needs.
     """
     videos_dir = Path("../videos")
-    transcripts_dir = Path("../transcripts")
     videos_dir.mkdir(exist_ok=True)
-    transcripts_dir.mkdir(exist_ok=True)
 
     return None
 
@@ -83,7 +82,6 @@ def extract_video_info(url: str) -> dict:
                 else "Unknown Date"
             )
             channel = info.get("uploader", "Unknown Channel")
-            description = info.get("description", "No description available")
             thumbnail = info.get("thumbnail", "No thumbnail available")
             id = info.get("id", "Unknown ID")
             duration = info.get("duration", "Unknown Duration")
@@ -91,7 +89,6 @@ def extract_video_info(url: str) -> dict:
                 "title": title,
                 "upload_date": upload_date,
                 "channel": channel,
-                "description": description,
                 "thumbnail": thumbnail,
                 "id": id,
                 "duration": duration,
@@ -114,6 +111,7 @@ def main(url):
             print(f"Video is already in the database.")
             return
         else:
+            print(video_info["title"])
             # Insert video info into the database
             # videos {
             # 	id integer pk increments unique
@@ -129,8 +127,8 @@ def main(url):
             # }
             cursor.execute(
                 """
-                INSERT INTO videos (yt_id, title, upload_date, channel_name, duration, description, thumbnail, processed_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO videos (yt_id, title, upload_date, channel_name, duration, thumbnail, processed_date)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 """,
                 (
                     video_info["id"],
@@ -138,7 +136,6 @@ def main(url):
                     video_info["upload_date"],
                     video_info["channel"],
                     video_info["duration"],
-                    base64.b64encode(video_info["description"].encode()).decode(),
                     video_info["thumbnail"],
                 ),
             )
@@ -153,12 +150,7 @@ def main(url):
 
 
 if __name__ == "__main__":
-    video_urls = [
-        "https://www.youtube.com/watch?v=JZ_P5iYhiA4",
-        "https://www.youtube.com/watch?v=iIMIKgRvS1Q",
-        "https://www.youtube.com/watch?v=CC8FKwj8hHQ",
-        "https://www.youtube.com/watch?v=tgNZpXglc6k",
-    ]
+    video_urls = []
     for url in video_urls:
         print(f"Processing {url}...")
         main(url)
