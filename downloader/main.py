@@ -104,10 +104,9 @@ def extract_video_info(url: str) -> dict:
         return {}
 
 
-def main():
+def main(url):
     create_directories()
-    URL = "https://www.youtube.com/watch?v=kfZOrjVXSms"
-    video_info = extract_video_info(URL)
+    video_info = extract_video_info(url)
     # Check if ID is already in the database
     with db_connection.cursor() as cursor:
         cursor.execute("SELECT 1 FROM videos WHERE yt_id = %s", (video_info["id"],))
@@ -144,7 +143,7 @@ def main():
                 ),
             )
             db_connection.commit()
-    download_audio(URL)
+    download_audio(url)
     # Update the status of the video to 1 (downloaded)
     with db_connection.cursor() as cursor:
         cursor.execute(
@@ -154,4 +153,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    video_urls = [
+        "https://www.youtube.com/watch?v=JZ_P5iYhiA4",
+        "https://www.youtube.com/watch?v=iIMIKgRvS1Q",
+        "https://www.youtube.com/watch?v=CC8FKwj8hHQ",
+        "https://www.youtube.com/watch?v=tgNZpXglc6k",
+    ]
+    for url in video_urls:
+        print(f"Processing {url}...")
+        main(url)
+        print(f"Finished processing {url}.")
+    print("All videos processed.")
+    db_connection.close()

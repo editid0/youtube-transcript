@@ -10,12 +10,23 @@ export default function Home() {
 	return (
 		<>
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
+				<h1 className="text-center text-4xl">
+					YouTube Transcript Searcher
+				</h1>
+				<p className="text-center text-accent-foreground">
+					Enter your search query, and we'll find videos mentioning
+					your query.
+				</p>
 				<Input
 					placeholder="Search..."
 					value={query}
 					onChange={(e) => setQuery(e.target.value || "")}
 				/>
-				<Button asChild disabled={!query}>
+				<Button
+					asChild
+					disabled={!query}
+					className={!query ? "opacity-50 cursor-not-allowed" : ""}
+				>
 					{!query ? (
 						<p>Search</p>
 					) : (
