@@ -10,6 +10,20 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 
+/**
+ * YouTube Transcript Search
+ *
+ * Search Features:
+ * - Regular search: Shows videos containing any of the search terms
+ * - Strict mode: When enabled via the "strict=true" query parameter,
+ *   only shows videos that contain at least one occurrence of each
+ *   word in the search query
+ *
+ * Example:
+ * - Regular search (/search?q=this is): Shows videos containing "this" OR "is"
+ * - Strict search (/search?q=this is&strict=true): Only shows videos containing both "this" AND "is"
+ */
+
 const pool = new Pool({
 	user: process.env.DB_USER,
 	host: process.env.DB_HOST,
@@ -49,7 +63,7 @@ function formatTimeReadable(seconds) {
 	return formatted;
 }
 
-async function fetchSearchResults(query) {
+async function fetchSearchResults(query, isStrictMode = false) {
 	const client = await pool.connect();
 	try {
 		// Split the query into individual words
@@ -76,13 +90,47 @@ async function fetchSearchResults(query) {
 			if (res.rows.length === 0) {
 				return [];
 			}
-			return res.rows.map((row) => ({
+
+			const results = res.rows.map((row) => ({
 				id: row.id,
 				video_id: row.video_id,
 				text: row.text,
 				start_time: row.start_time,
 				end_time: row.end_time,
 			}));
+
+			// If strict mode is enabled, filter videos to only include those with at least one result for each query word
+			if (isStrictMode && queryWords.length > 1) {
+				// First, get all unique video IDs from the results
+				const videoIds = [
+					...new Set(results.map((result) => result.video_id)),
+				];
+
+				// Filter to only include videos that have at least one segment containing each query word
+				const strictVideoIds = videoIds.filter((videoId) => {
+					const videoSegments = results.filter(
+						(result) => result.video_id === videoId
+					);
+					// Check if each query word appears in at least one segment of this video
+					return queryWords.every((word) => {
+						const escapedWord = word.replace(
+							/[.*+?^${}()|[\]\\]/g,
+							"\\$&"
+						);
+						const regex = new RegExp(escapedWord, "i");
+						return videoSegments.some((segment) =>
+							regex.test(segment.text)
+						);
+					});
+				});
+
+				// Filter results to only include segments from videos that passed the strict mode check
+				return results.filter((result) =>
+					strictVideoIds.includes(result.video_id)
+				);
+			}
+
+			return results;
 		} else {
 			// Original query for a single word
 			const res = await client.query(
@@ -180,6 +228,8 @@ function findVideoIds({ results }) {
 
 export default async function SearchPage({ searchParams }) {
 	const query = searchParams.q || "";
+	const isStrictMode = searchParams.strict === "true";
+
 	if (!query) {
 		return (
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
@@ -197,7 +247,7 @@ export default async function SearchPage({ searchParams }) {
 		.split(/\s+/)
 		.filter((word) => word.length > 0);
 
-	const results = await fetchSearchResults(query);
+	const results = await fetchSearchResults(query, isStrictMode);
 
 	// Remove duplicate transcript segments (same text in the same video)
 	const uniqueResults = [];
@@ -235,6 +285,7 @@ export default async function SearchPage({ searchParams }) {
 				<h1 className="text-center text-4xl">Search Results</h1>
 				<p className="text-center text-accent-foreground">
 					No results found for: <strong>{query}</strong>
+					{isStrictMode && " (strict mode)"}
 				</p>
 			</div>
 		);
@@ -245,6 +296,7 @@ export default async function SearchPage({ searchParams }) {
 				<h1 className="text-center text-4xl">Search Results</h1>
 				<p className="text-center text-accent-foreground">
 					No results found for: <strong>{query}</strong>
+					{isStrictMode && " (strict mode)"}
 				</p>
 			</div>
 		);
@@ -254,6 +306,11 @@ export default async function SearchPage({ searchParams }) {
 			<h1 className="text-center text-4xl">Search Results</h1>
 			<p className="text-center text-accent-foreground">
 				Results for: <strong>{query}</strong>
+				{isStrictMode && " (strict mode)"}
+			</p>
+			<p className="text-center text-muted-foreground text-sm">
+				{uniqueResults.length} results found over {videoDetails.length}{" "}
+				videos
 			</p>
 			{/* First get video details */}
 			<div className="flex flex-col max-w-lg mx-auto w-full">
