@@ -175,6 +175,7 @@ export default function Home() {
 					href={"https://app.youform.com/forms/vfwgjtwu"}
 					className="text-sm text-primary hover:underline"
 					target="_blank"
+					rel="noopener noreferrer"
 				>
 					Submit a video to transcribe
 				</Link>
