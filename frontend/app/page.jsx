@@ -43,7 +43,9 @@ export default function Home() {
 					Enter your search query, and we'll find videos mentioning
 					your query.
 				</p>
-				<p>Current size of database: {size}</p>
+				<p className="text-sm text-muted-foreground text-center">
+					Current size of database: {size}
+				</p>
 				<Input
 					placeholder="Search..."
 					value={query}
