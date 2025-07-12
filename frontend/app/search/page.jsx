@@ -226,10 +226,39 @@ function findVideoIds({ results }) {
 	return Array.from(videoIds);
 }
 
+function insertQueryIntoDb(query, strictMode) {
+	// Lower thecase the query for consistency
+	query = query.toLowerCase();
+	// Split words by spaces, and only take the first 2 words if there are more than 2
+	const words = query.split(/\s+/).slice(0, 2).join(" ");
+	// Set the max length to 30 characters total
+	if (words.length > 30) {
+		query = words.slice(0, 30);
+	} else {
+		query = words;
+	}
+	console.log("Inserting query into database:", query, strictMode);
+	const client = pool.connect();
+	client.then((client) => {
+		return client.query(
+			"INSERT INTO queries (content, strict, ts) VALUES ($1, $2, NOW())",
+			[query, strictMode]
+		);
+	});
+	client.catch((error) => {
+		console.error("Error inserting query into database:", error);
+	});
+}
+
 export default async function SearchPage({ searchParams }) {
 	var params = await searchParams;
 	const query = params.q || "";
 	const isStrictMode = params.strict === "true";
+
+	// Insert the query into the database
+	if (query) {
+		insertQueryIntoDb(query, isStrictMode);
+	}
 
 	if (!query) {
 		return (
