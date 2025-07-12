@@ -215,3 +215,4 @@ pyrightconfig.json
 
 videos/
 transcripts/
+downloader/video_urls.txt

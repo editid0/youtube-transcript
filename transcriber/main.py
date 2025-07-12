@@ -15,6 +15,7 @@ DB_HOST, DB_USER, DB_PASS, DB_NAME = (
 db_connection = psycopg2.connect(
     host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME
 )
+db_connection.set_client_encoding("UTF8")
 
 model = whisper.load_model("base.en")
 

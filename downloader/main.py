@@ -150,10 +150,24 @@ def main(url):
 
 
 if __name__ == "__main__":
-    video_urls = []
+    video_urls_file = Path("video_urls.txt")
+    if not video_urls_file.exists():
+        print("video_urls.txt not found. Please create the file with video URLs.")
+        exit(1)
+    with open(video_urls_file, "r") as f:
+        video_urls = [line.strip() for line in f if line.strip()]
     for url in video_urls:
         print(f"Processing {url}...")
         main(url)
         print(f"Finished processing {url}.")
+        # Remove the URL from the file after processing
+        with open(video_urls_file, "r+") as f:
+            remaining_urls = [
+                line.strip() for line in f if line.strip() and line.strip() != url
+            ]
+            f.seek(0)
+            f.write("\n".join(remaining_urls) + "\n")
+            f.truncate()
+        print(f"Removed {url} from video_urls.txt.")
     print("All videos processed.")
     db_connection.close()
