@@ -390,66 +390,64 @@ export default async function SearchPage({ searchParams }) {
 							</div>
 						</DialogTrigger>
 						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>
+							<DialogHeader className={"mb-0 pb-0"}>
+								<DialogTitle className={"max-w-[95%]"}>
 									{video.title} - {video.channel}
 								</DialogTitle>
-								<DialogDescription asChild>
-									<div className="max-h-[30vh] overflow-y-auto">
-										{/* Show how many results found */}
-										<p className="text-sm text-muted-foreground mb-2">
-											{
-												uniqueResults.filter(
-													(result) =>
-														result.video_id ===
-														video.yt_id
-												).length
-											}{" "}
-											results found
-										</p>
-										{uniqueResults.map((result) => (
-											<div key={result.id}>
-												{result.video_id ===
-													video.yt_id && (
-													<Link
-														href={`https://youtu.be/${
-															result.video_id
-														}?t=${formatTime(
-															result.start_time
-														)}`}
-														target="_blank"
-													>
-														<div className="border-2 rounded-md my-2 p-2 mr-1">
-															<p
-																dangerouslySetInnerHTML={{
-																	__html: formatResult(
-																		result.text,
-																		queryWords.length >
-																			1
-																			? queryWords
-																			: [
-																					query,
-																			  ]
-																	),
-																}}
-															></p>
-															<p className="text-sm text-muted-foreground">
-																{formatTimeReadable(
-																	result.start_time
-																)}{" "}
-																-{" "}
-																{formatTimeReadable(
-																	result.end_time
-																)}
-															</p>
-														</div>
-													</Link>
-												)}
-											</div>
-										))}
-									</div>
-								</DialogDescription>
+								<p className="text-sm text-muted-foreground mb-2">
+									{
+										uniqueResults.filter(
+											(result) =>
+												result.video_id === video.yt_id
+										).length
+									}{" "}
+									results found
+								</p>
 							</DialogHeader>
+							<DialogDescription asChild>
+								<div className="max-h-[30vh] overflow-y-auto border-2 border-muted p-2 rounded-md">
+									{uniqueResults.map((result) => (
+										<div key={result.id}>
+											{result.video_id ===
+												video.yt_id && (
+												<Link
+													href={`https://youtu.be/${
+														result.video_id
+													}?t=${formatTime(
+														result.start_time
+													)}`}
+													target="_blank"
+												>
+													<div className="border-2 rounded-md my-2 p-2 mr-1">
+														<p
+															dangerouslySetInnerHTML={{
+																__html: formatResult(
+																	result.text,
+																	queryWords.length >
+																		1
+																		? queryWords
+																		: [
+																				query,
+																		  ]
+																),
+															}}
+														></p>
+														<p className="text-sm text-muted-foreground">
+															{formatTimeReadable(
+																result.start_time
+															)}{" "}
+															-{" "}
+															{formatTimeReadable(
+																result.end_time
+															)}
+														</p>
+													</div>
+												</Link>
+											)}
+										</div>
+									))}
+								</div>
+							</DialogDescription>
 						</DialogContent>
 					</Dialog>
 				))}
