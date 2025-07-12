@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +15,28 @@ import {
 export default function Home() {
 	const [query, setQuery] = useState("");
 	const [isStrictMode, setIsStrictMode] = useState(false);
+	useEffect(() => {
+		const handleKeyDown = (event) => {
+			// Check if the pressed key is "Enter"
+			if (event.key === "Enter") {
+				// Prevent the default action to avoid form submission
+				event.preventDefault();
+				// Trigger the search if the query is not empty
+				if (query) {
+					window.location.href = `/search?q=${encodeURIComponent(
+						query
+					)}&strict=${isStrictMode}`;
+				}
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+
+		// Cleanup the event listener on component unmount
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, []);
 	return (
 		<>
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
