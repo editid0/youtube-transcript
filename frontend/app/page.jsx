@@ -15,6 +15,24 @@ import {
 export default function Home() {
 	const [query, setQuery] = useState("");
 	const [isStrictMode, setIsStrictMode] = useState(false);
+	const [size, setSize] = useState("Loading...");
+	useEffect(() => {
+		// Make a request to /api/size to get the size of the segments table
+		fetch("/api/size", { next: { revalidate: 120 } })
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error("Network response was not ok");
+				}
+				return response.json();
+			})
+			.then((data) => {
+				setSize(data);
+			})
+			.catch((error) => {
+				console.error("Error fetching size:", error);
+				setSize("Error fetching size");
+			});
+	}, []);
 	return (
 		<>
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
@@ -25,6 +43,7 @@ export default function Home() {
 					Enter your search query, and we'll find videos mentioning
 					your query.
 				</p>
+				<p>Current size of database: {size}</p>
 				<Input
 					placeholder="Search..."
 					value={query}
