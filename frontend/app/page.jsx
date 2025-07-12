@@ -153,7 +153,7 @@ export default function Home() {
 									<Link
 										href={`/search?q=${encodeURIComponent(
 											query.content
-										)}&strict=${query.strict}`}
+										)}&strict=${query.strict}&src=popular`}
 									>
 										{query.content}
 									</Link>

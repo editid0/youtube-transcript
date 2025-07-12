@@ -226,7 +226,11 @@ function findVideoIds({ results }) {
 	return Array.from(videoIds);
 }
 
-function insertQueryIntoDb(query, strictMode) {
+function insertQueryIntoDb(query, strictMode, src) {
+	if (src == "popular") {
+		// If the source is popular, we don't insert the query
+		return;
+	}
 	// Lower thecase the query for consistency
 	query = query.toLowerCase();
 	// Split words by spaces, and only take the first 2 words if there are more than 2
@@ -254,10 +258,11 @@ export default async function SearchPage({ searchParams }) {
 	var params = await searchParams;
 	const query = params.q || "";
 	const isStrictMode = params.strict === "true";
+	const src = params.src || "search";
 
 	// Insert the query into the database
 	if (query) {
-		insertQueryIntoDb(query, isStrictMode);
+		insertQueryIntoDb(query, isStrictMode, src);
 	}
 
 	if (!query) {
