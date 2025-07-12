@@ -15,28 +15,6 @@ import {
 export default function Home() {
 	const [query, setQuery] = useState("");
 	const [isStrictMode, setIsStrictMode] = useState(false);
-	useEffect(() => {
-		const handleKeyDown = (event) => {
-			// Check if the pressed key is "Enter"
-			if (event.key === "Enter") {
-				// Prevent the default action to avoid form submission
-				event.preventDefault();
-				// Trigger the search if the query is not empty
-				if (query) {
-					window.location.href = `/search?q=${encodeURIComponent(
-						query
-					)}&strict=${isStrictMode}`;
-				}
-			}
-		};
-
-		document.addEventListener("keydown", handleKeyDown);
-
-		// Cleanup the event listener on component unmount
-		return () => {
-			document.removeEventListener("keydown", handleKeyDown);
-		};
-	}, []);
 	return (
 		<>
 			<div className="flex items-center justify-center h-screen max-w-md mx-auto flex-col gap-4">
@@ -51,6 +29,13 @@ export default function Home() {
 					placeholder="Search..."
 					value={query}
 					onChange={(e) => setQuery(e.target.value || "")}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && query) {
+							window.location.href = `/search?q=${encodeURIComponent(
+								query
+							)}&strict=${isStrictMode}`;
+						}
+					}}
 				/>
 				<div className="flex items-center gap-2">
 					<Checkbox

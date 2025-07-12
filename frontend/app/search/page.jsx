@@ -227,8 +227,9 @@ function findVideoIds({ results }) {
 }
 
 export default async function SearchPage({ searchParams }) {
-	const query = searchParams.q || "";
-	const isStrictMode = searchParams.strict === "true";
+	var params = await searchParams;
+	const query = params.q || "";
+	const isStrictMode = params.strict === "true";
 
 	if (!query) {
 		return (
