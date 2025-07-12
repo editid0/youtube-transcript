@@ -179,6 +179,14 @@ export default function Home() {
 				>
 					Submit a video to transcribe
 				</Link>
+				<Link
+					href={"https://app.youform.com/forms/ookrceiq"}
+					className="text-sm text-primary hover:underline"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Feedback + Suggestions
+				</Link>
 			</div>
 		</>
 	);
