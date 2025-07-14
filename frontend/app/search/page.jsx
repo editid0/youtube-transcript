@@ -241,7 +241,6 @@ function insertQueryIntoDb(query, strictMode, src) {
 	} else {
 		query = words;
 	}
-	console.log("Inserting query into database:", query, strictMode);
 	const client = pool.connect();
 	client.then((client) => {
 		return client.query(
@@ -391,7 +390,7 @@ export default async function SearchPage({ searchParams }) {
 						</DialogTrigger>
 						<DialogContent>
 							<DialogHeader className={"mb-0 pb-0"}>
-								<DialogTitle className={"max-w-[95%]"}>
+								<DialogTitle className={"max-w-[95%] text-lg/6"}>
 									{video.title} - {video.channel}
 								</DialogTitle>
 								<p className="text-sm text-muted-foreground mb-2">
@@ -410,40 +409,39 @@ export default async function SearchPage({ searchParams }) {
 										<div key={result.id}>
 											{result.video_id ===
 												video.yt_id && (
-												<Link
-													href={`https://youtu.be/${
-														result.video_id
-													}?t=${formatTime(
-														result.start_time
-													)}`}
-													target="_blank"
-												>
-													<div className="border-2 rounded-md my-2 p-2 mr-1">
-														<p
-															dangerouslySetInnerHTML={{
-																__html: formatResult(
-																	result.text,
-																	queryWords.length >
-																		1
-																		? queryWords
-																		: [
-																				query,
-																		  ]
-																),
-															}}
-														></p>
-														<p className="text-sm text-muted-foreground">
-															{formatTimeReadable(
+													<Link
+														href={`https://youtu.be/${result.video_id
+															}?t=${formatTime(
 																result.start_time
-															)}{" "}
-															-{" "}
-															{formatTimeReadable(
-																result.end_time
-															)}
-														</p>
-													</div>
-												</Link>
-											)}
+															)}`}
+														target="_blank"
+													>
+														<div className="border-2 rounded-md my-2 p-2 mr-1">
+															<p
+																dangerouslySetInnerHTML={{
+																	__html: formatResult(
+																		result.text,
+																		queryWords.length >
+																			1
+																			? queryWords
+																			: [
+																				query,
+																			]
+																	),
+																}}
+															></p>
+															<p className="text-sm text-muted-foreground">
+																{formatTimeReadable(
+																	result.start_time
+																)}{" "}
+																-{" "}
+																{formatTimeReadable(
+																	result.end_time
+																)}
+															</p>
+														</div>
+													</Link>
+												)}
 										</div>
 									))}
 								</div>

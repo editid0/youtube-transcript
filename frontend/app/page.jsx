@@ -45,8 +45,9 @@ export default function Home() {
 			})
 			.then((data) => {
 				var defaultQueries = [
-					{ content: "CMS", strict: false },
-					{ content: "Discover", strict: false },
+					{ content: "cms", strict: false },
+					{ content: "discover", strict: false },
+					{ content: "payload", strict: false },
 				];
 				if (data) {
 					// Count how many times each query appears, then sort by occurrences
